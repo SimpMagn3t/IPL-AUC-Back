@@ -124,6 +124,51 @@ app.get('/getTeamInfo', async (req, res) => {
     }            
 
 });
+app.post('/joinissue', async (req, res) => {
+    console.log('joinissue:', req.body);
+    try {
+      const { roomCode, joinCode, isHost } = req.body;
+  
+      // Find the room by roomCode
+      const room = await Room.findOne({ roomCode });
+      if (!room) {
+        return res.status(404).json({ message: 'Room not found' });
+      }
+  
+      // If the user is the host
+      if (isHost) {
+        // Validate the host's join code
+        if (room.host.hostJoinCode === joinCode) {
+          // Update the host's isJoined status to false
+          room.host.isJoined = false;
+  
+          // Save the updated room
+          await room.save();
+  
+          return res.status(200).json({ message: 'Host issue resolved, Try joining the room now' });
+        } else {
+          return res.status(400).json({ message: 'Invalid Host Join Code' });
+        }
+      } else {
+        // If the user is a team
+        const team = room.teams.find(t => t.teamCode === joinCode);
+        if (team) {
+          // Update the team's isJoined status to false
+          team.isJoined = false;
+  
+          // Save the updated room
+          await room.save();
+  
+          return res.status(200).json({ message: 'Team issue resolved, Try joining the room now' });
+        } else {
+          return res.status(400).json({ message: 'Invalid Team Join Code' });
+        }
+      }
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Internal Server Error' });
+    }
+  });
 const auctionState = {};
 const teamOnStatus={};
 const createTeam = async (teamData) => {
@@ -426,6 +471,10 @@ socket.on('finalBid',async({roomCode,finalBid,soldState})=>{
     });
     
 });
+socket.on('sendMessage', ({ roomCode, teamName, message }) => {
+    console.log('sendMessage:', roomCode, teamName, message);
+    io.to(roomCode).emit('receiveMessage', { teamName, message, timestamp: new Date().toISOString() });
+});
 socket.on('finalBidResponse',async({roomCode,finalBidResponse,soldState})=>{
     if(finalBidResponse){
         console.log(`accepted and sold to` ,soldState.currentBid);
@@ -455,4 +504,3 @@ const PORT = process.env.PORT || 5000; // Default to 5000 if PORT is not defined
 server.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on port ${PORT}`);
 });
-
