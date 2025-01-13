@@ -58,6 +58,15 @@ app.get('/players', async (req, res) => {
         res.status(500).send('Server Error hai');
     }
 });
+app.get('/purse', async (req, res) => {
+    const { roomCode, teamCode } = req.query;
+    try {
+        let team= await Team.findOne({teamCode});
+        res.json(team.purse);
+    } catch (error) {
+        res.status(500).json({ message: 'Failed to fetch team purse' });
+    }
+});
 app.get('/getUnsold',async(req,res)=>{
     const {roomCode}=req.query;
     try {
