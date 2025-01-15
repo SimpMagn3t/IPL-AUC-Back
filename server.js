@@ -472,8 +472,8 @@ socket.on('rtmResponse',async({roomCode,useRtm,soldState})=>{
     }
 });
 socket.on('finalBid',async({roomCode,finalBid,soldState})=>{
-    soldState.currentBid=finalBid;
-    console.log('finalBid',finalBid);
+    soldState.soldState.currentBid=finalBid;
+    console.log('finalBid',soldState);
     io.to(roomCode).emit('finalBidMatch',{
         soldState,
         finalBid
@@ -486,15 +486,14 @@ socket.on('sendMessage', ({ roomCode, teamName, message }) => {
 });
 socket.on('finalBidResponse',async({roomCode,finalBidResponse,soldState})=>{
     if(finalBidResponse){
-        console.log(`accepted and sold to` ,soldState.currentBid);
+        console.log(`accepted and sold to` ,soldState.soldState.rtmTeamName );
         soldState.soldState.currBidder=soldState.soldState.rtmTeam;
         soldState.soldState.currBidderName=soldState.soldState.rtmTeamName;
-        soldState.soldState.currentBid=soldState.currentBid;
         sellPlayer(soldState.soldState,roomCode);
     }
     else{
-        console.log('rtm rehect 1');
         soldState.soldState.useRtm=false;
+        console.log('rtm rehect 1',soldState);
         sellPlayer(soldState.soldState,roomCode);
     }
 });
