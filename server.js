@@ -88,6 +88,65 @@ app.get('/getBase', async (req, res) => {
         res.status(500).send('Server Error hai');
     }
 });
+ 
+
+// Search API
+app.get('/playerstats', async (req, res) => {
+    const { playerId } = req.body;
+  
+    try {
+      // Fetch all teams containing the player in any nested boughtPlayers arrays
+      const teams = await Team.find();
+  
+      if (teams.length === 0) {
+        return res.status(404).json({ message: 'No teams found.' });
+      }
+  
+      // Initialize variables for stats
+      let totalSoldPrice = 0;
+      let highestSoldPrice = Number.MIN_VALUE;
+      let lowestSoldPrice = Number.MAX_VALUE;
+      let totalTeams = 0;
+      const playerOccurrences = [];
+  
+      teams.forEach((team) => {
+        // Flatten the nested boughtPlayers arrays
+        const allPlayers = team.boughtPlayers.flat(); // Combine nested arrays into one
+  
+        // Find the player in the flattened array
+        const player = allPlayers.find((p) => p.id === playerId);
+  
+        if (player) {
+          totalSoldPrice += player.currentBid || 0;
+          highestSoldPrice = Math.max(highestSoldPrice, player.currentBid || 0);
+          lowestSoldPrice = Math.min(lowestSoldPrice, player.currentBid || 0);
+          totalTeams++;
+          playerOccurrences.push(player);
+        }
+      });
+  
+      if (totalTeams === 0) {
+        return res.status(404).json({ message: 'Player not found in any team.' });
+      }
+  
+      // Calculate mean sold price
+      const meanSoldPrice = totalTeams > 0 ? totalSoldPrice / totalTeams : 0;
+  
+      // Return stats
+      res.json({
+        playerId,
+        meanSoldPrice,
+        highestSoldPrice,
+        lowestSoldPrice,
+        totalTeams,
+        playerOccurrences,
+      });
+    } catch (error) {
+      console.error('Error fetching player stats:', error);
+      res.status(500).json({ message: 'Internal server error.' });
+    }
+  });
+
 
 app.post('/baseTeam', async (req, res) => {
     try {
@@ -249,7 +308,7 @@ io.on('connection', (socket) => {
                 if (team) {
                     teamOnStatus[roomCode].find(t => t.name === team.teamName).status = false;
                     console.log(teamOnStatus[roomCode]);
-                    io.to(roomCode).emit('newUser', { teamOnStatus: teamOnStatus[roomCode] ,message:`${teamName} left the room` });
+                    io.to(roomCode).emit('newUser', { teamOnStatus: teamOnStatus[roomCode] ,message:`${team.teamName} left the room` });
                     team.isJoined = false; // Reset the isJoined flag
                     await room.save();
                     console.log(`Reset isJoined for team ${teamCode} in room ${roomCode}`);
