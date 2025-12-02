@@ -27,12 +27,12 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: 'http://localhost:3000', // Replace with your frontend URL for production
+        origin: '*', // Replace with your frontend URL for production
         methods: ['GET', 'POST'],
     }
 });
 app.use(cors({
-    origin: 'http://localhost:3000', // Replace '*' with your frontend domain in production
+    origin: '*', // Replace '*' with your frontend domain in production
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
 }));
 
@@ -46,7 +46,15 @@ mongoose.connect(mongoURI, {
 })
     .then(() => console.log('MongoDB connected'))
     .catch(err => console.log('MongoDB connection error:', err));
-
+app.get('/roomfindcode',async(req,res)=>{
+    const {roomCode}=req.body;
+    try {
+        const room=await Room.findOne({roomCode});
+        res.json(room);
+    } catch (error) {
+        res.status(500).send("Error");
+    }
+});
 // API to fetch all player data
 app.get('/players', async (req, res) => {
     try {
